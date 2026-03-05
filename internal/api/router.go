@@ -1,9 +1,14 @@
 package api
 
-import "github.com/go-chi/chi/v5"
+import (
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+)
 
 func NewRouter(noteHandler *NoteHandler, userHandler *UserHandler, middleware *Middleware) chi.Router {
 	router := chi.NewRouter()
+	router.Handle("/*", http.FileServer(http.Dir("./web")))
 
 	//Публичные маршруты без авторизации
 	router.Get("/api/v1/notes", noteHandler.GetAll)            //Вывод всех заметок на главную

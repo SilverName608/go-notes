@@ -8,6 +8,8 @@ import (
 	domainModel "github.com/SilverName608/go-notes/internal/domain/model"
 	"github.com/SilverName608/go-notes/internal/infrastructure/repository"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -34,6 +36,10 @@ func (s *UserServiceImpl) Register(req *apiModel.RegisterRequest) (*apiModel.Aut
 
 	user, err = s.repo.Create(user)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, errors.New("email or username already in use")
+		}
 		return nil, err
 	}
 
@@ -54,6 +60,9 @@ func (s *UserServiceImpl) Register(req *apiModel.RegisterRequest) (*apiModel.Aut
 func (s *UserServiceImpl) Login(req *apiModel.LoginRequest) (*apiModel.AuthResponse, error) {
 	user, err := s.repo.FindByEmail(req.Email)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.New("user not found")
+		}
 		return nil, err
 	}
 	if user == nil {

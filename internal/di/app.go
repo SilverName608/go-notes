@@ -11,6 +11,9 @@ import (
 	"github.com/SilverName608/go-notes/internal/infrastructure/db"
 	"github.com/SilverName608/go-notes/internal/infrastructure/repository"
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/fx"
 )
@@ -52,10 +55,26 @@ func NewUserService(repo repository.UserRepository, cfg *config.Config) *applica
 	return application.NewUserService(repo, cfg.JWTSecret)
 }
 
-func RunServer(router chi.Router, config *config.Config) {
-	fmt.Printf("Server launch → http://localhost:%s\n", config.HTTPPort)
-	err := http.ListenAndServe(":"+config.HTTPPort, router)
-	if err != nil {
+func RunServer(router chi.Router, cfg *config.Config) {
+	if err := runMigrations(cfg); err != nil {
 		panic(err)
 	}
+	fmt.Printf("Server launch → http://localhost:%s\n", cfg.HTTPPort)
+	if err := http.ListenAndServe(":"+cfg.HTTPPort, router); err != nil {
+		panic(err)
+	}
+}
+
+func runMigrations(cfg *config.Config) error {
+	m, err := migrate.New(
+		"file://migrations",
+		cfg.DBDSN,
+	)
+	if err != nil {
+		return err
+	}
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+	return nil
 }

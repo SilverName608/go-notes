@@ -1,11 +1,13 @@
 package di
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/SilverName608/go-notes/internal/api"
 	"github.com/SilverName608/go-notes/internal/application"
 	"github.com/SilverName608/go-notes/internal/config"
+	"github.com/SilverName608/go-notes/internal/domain/service"
 	"github.com/SilverName608/go-notes/internal/infrastructure/db"
 	"github.com/SilverName608/go-notes/internal/infrastructure/repository"
 	"github.com/go-chi/chi/v5"
@@ -17,9 +19,18 @@ func NewApp() *fx.App {
 	return fx.New(
 		fx.Provide(config.Load),
 		fx.Provide(NewPool),
-		fx.Provide(repository.NewPostgresUserRepository),
-		fx.Provide(repository.NewPostgresNoteRepository),
-		fx.Provide(NewUserService),
+		fx.Provide(fx.Annotate(
+			repository.NewPostgresUserRepository,
+			fx.As(new(repository.UserRepository)),
+		)),
+		fx.Provide(fx.Annotate(
+			repository.NewPostgresNoteRepository,
+			fx.As(new(repository.NoteRepository)),
+		)),
+		fx.Provide(fx.Annotate(
+			NewUserService,
+			fx.As(new(service.UserService)),
+		)),
 		fx.Provide(application.NewNoteService),
 		fx.Provide(NewMiddleware),
 		fx.Provide(api.NewUserHandler),
@@ -42,6 +53,7 @@ func NewUserService(repo repository.UserRepository, cfg *config.Config) *applica
 }
 
 func RunServer(router chi.Router, config *config.Config) {
+	fmt.Printf("Server launch → http://localhost:%s\n", config.HTTPPort)
 	err := http.ListenAndServe(":"+config.HTTPPort, router)
 	if err != nil {
 		panic(err)

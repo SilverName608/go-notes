@@ -1,8 +1,3 @@
-# go-notes
-<<<<<<< HEAD
-go pet project
-=======
-
 Веб-приложение для хранения заметок с авторизацией. Backend на Go, фронтенд на чистом HTML/CSS/JS.
 
 ## Стек
@@ -121,4 +116,3 @@ make build        # собрать бинарник
 make migrate-up   # накатить миграции
 make migrate-down # откатить миграции
 ```
->>>>>>> develop

@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>go-notes</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Newsreader:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0e0e0f;
+      --surface: #161618;
+      --border: #2a2a2e;
+      --accent: #c8f55a;
+      --accent-dim: #a8d43a;
+      --text: #e8e8e0;
+      --muted: #6b6b72;
+      --danger: #ff5f5f;
+      --radius: 6px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Newsreader', serif;
+      font-size: 16px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 56px;
+      background: rgba(14,14,15,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+    }
+    .logo span { color: var(--muted); }
+
+    .auth-area { display: flex; align-items: center; gap: 0.75rem; }
+
+    .btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 0.45rem 1rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.primary { background: var(--accent); color: #0e0e0f; border-color: var(--accent); }
+    .btn.primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
+    .btn.danger { border-color: var(--danger); color: var(--danger); }
+    .btn.danger:hover { background: var(--danger); color: #fff; }
+
+    .user-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      padding: 0.45rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .user-badge strong { color: var(--accent); }
+
+    /* ── MAIN ── */
+    main {
+      flex: 1;
+      padding: 5rem 2rem 6rem;
+      max-width: 860px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .page-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+    }
+
+    /* ── NOTES GRID ── */
+    #notes-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+
+    .note-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.25rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      animation: fadeUp 0.3s ease both;
+      transition: border-color 0.15s;
+    }
+    .note-card:hover { border-color: #3a3a40; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .note-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+.note-body {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.55;
+  flex: 1;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  line-clamp: 4;
+}
+
+    .note-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.25rem;
+    }
+
+    .note-date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: #3a3a42;
+    }
+
+    .note-actions { display: flex; gap: 0.4rem; }
+
+    .icon-btn {
+      background: none;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.7rem;
+      padding: 0.2rem 0.4rem;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.12s;
+    }
+    .icon-btn:hover { border-color: var(--border); color: var(--text); }
+    .icon-btn.del:hover { border-color: var(--danger); color: var(--danger); }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 4rem 0;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+
+    /* ── FAB ── */
+    #fab {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #0e0e0f;
+      font-size: 1.4rem;
+      font-weight: 300;
+      border: none;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(200,245,90,0.25);
+      transition: transform 0.15s, box-shadow 0.15s;
+      z-index: 90;
+    }
+    #fab:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(200,245,90,0.35); }
+    #fab.visible { display: flex; }
+
+    /* ── MODAL ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      animation: popIn 0.2s ease;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    .modal h2 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 0;
+      transition: color 0.15s;
+    }
+    .modal-close:hover { color: var(--text); }
+
+    .modal label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+
+    .modal input, .modal textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'Newsreader', serif;
+      font-size: 0.9rem;
+      padding: 0.6rem 0.75rem;
+      outline: none;
+      transition: border-color 0.15s;
+      resize: none;
+    }
+    .modal input:focus, .modal textarea:focus { border-color: var(--accent); }
+
+    .modal textarea { min-height: 100px; }
+
+    .modal-footer { display: flex; justify-content: flex-end; gap: 0.5rem; }
+
+    .modal .error-msg {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--danger);
+      display: none;
+    }
+    .modal .error-msg.visible { display: block; }
+
+    /* ── DEBUG PANEL ── */
+    #debug-toggle {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      color: #2a2a30;
+      background: none;
+      border: 1px solid #1e1e22;
+      border-radius: 4px;
+      padding: 0.3rem 0.5rem;
+      cursor: pointer;
+      z-index: 90;
+      transition: all 0.15s;
+    }
+    #debug-toggle:hover { color: var(--muted); border-color: var(--border); }
+
+    #debug-panel {
+      position: fixed;
+      bottom: 3.5rem;
+      left: 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      width: 300px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      display: none;
+      z-index: 90;
+      line-height: 1.8;
+    }
+    #debug-panel.open { display: block; }
+    #debug-panel .dk { color: #3a3a45; }
+    #debug-panel .dv { color: var(--accent); }
+    #debug-panel .dv.red { color: var(--danger); }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+    .tab {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.15s;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">go<span>-</span>notes</div>
+  <div class="auth-area" id="auth-area">
+    <button class="btn" onclick="openModal('login-modal')">войти</button>
+    <button class="btn primary" onclick="openModal('register-modal')">регистрация</button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+  <div class="page-title">// все заметки</div>
+  <div id="notes-list">
+    <div class="empty-state">загрузка...</div>
+  </div>
+</main>
+
+<!-- FAB -->
+<button id="fab" class="visible" onclick="openModal('note-modal')" title="Новая заметка">+</button>
+<div id="fab" style="display:none"></div>
+
+<!-- DEBUG TOGGLE -->
+<button id="debug-toggle" onclick="toggleDebug()">debug</button>
+<div id="debug-panel">
+  <div><span class="dk">token_exp   </span><span class="dv" id="dbg-exp">—</span></div>
+  <div><span class="dk">user_id     </span><span class="dv" id="dbg-uid">—</span></div>
+  <div><span class="dk">username    </span><span class="dv" id="dbg-usr">—</span></div>
+  <div><span class="dk">notes_count </span><span class="dv" id="dbg-cnt">—</span></div>
+  <div><span class="dk">api_base    </span><span class="dv">/api/v1</span></div>
+  <div><span class="dk">status      </span><span class="dv" id="dbg-status">idle</span></div>
+</div>
+
+<!-- LOGIN MODAL -->
+<div class="overlay" id="login-modal">
+  <div class="modal">
+    <h2>// войти <button class="modal-close" onclick="closeModal('login-modal')">✕</button></h2>
+    <div>
+      <label>EMAIL</label>
+      <input type="email" id="login-email" placeholder="you@example.com"/>
+    </div>
+    <div>
+      <label>ПАРОЛЬ</label>
+      <input type="password" id="login-password" placeholder="••••••••"/>
+    </div>
+    <div class="error-msg" id="login-error"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('login-modal')">отмена</button>
+      <button class="btn primary" onclick="doLogin()">войти</button>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER MODAL -->
+<div class="overlay" id="register-modal">
+  <div class="modal">
+    <h2>// регистрация <button class="modal-close" onclick="closeModal('register-modal')">✕</button></h2>
+    <div>
+      <label>USERNAME</label>
+      <input type="text" id="reg-username" placeholder="silvername"/>
+    </div>
+    <div>
+      <label>EMAIL</label>
+      <input type="email" id="reg-email" placeholder="you@example.com"/>
+    </div>
+    <div>
+      <label>ПАРОЛЬ</label>
+      <input type="password" id="reg-password" placeholder="минимум 8 символов"/>
+    </div>
+    <div class="error-msg" id="reg-error"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('register-modal')">отмена</button>
+      <button class="btn primary" onclick="doRegister()">создать аккаунт</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTE MODAL (create / edit) -->
+<div class="overlay" id="note-modal">
+  <div class="modal">
+    <h2 id="note-modal-title">// новая заметка <button class="modal-close" onclick="closeModal('note-modal')">✕</button></h2>
+    <div>
+      <label>ЗАГОЛОВОК</label>
+      <input type="text" id="note-title" placeholder="о чём заметка?"/>
+    </div>
+    <div>
+      <label>ТЕКСТ</label>
+      <textarea id="note-body" placeholder="пишите здесь..."></textarea>
+    </div>
+    <div class="error-msg" id="note-error"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('note-modal')">отмена</button>
+      <button class="btn primary" onclick="saveNote()">сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = '/api/v1';
+  let token = localStorage.getItem('token') || null;
+  let currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+  let editingNoteId = null;
+  let notesCache = [];
+
+  // ── INIT ──
+  window.addEventListener('DOMContentLoaded', () => {
+    renderAuthArea();
+    loadNotes();
+  });
+
+  // ── AUTH AREA ──
+  function renderAuthArea() {
+    const area = document.getElementById('auth-area');
+    const fab = document.getElementById('fab');
+    if (currentUser) {
+      area.innerHTML = `
+        <span class="user-badge"><strong>${currentUser.username}</strong></span>
+        <button class="btn danger" onclick="logout()">выйти</button>
+      `;
+      fab.classList.add('visible');
+    } else {
+      area.innerHTML = `
+        <button class="btn" onclick="openModal('login-modal')">войти</button>
+        <button class="btn primary" onclick="openModal('register-modal')">регистрация</button>
+      `;
+      fab.classList.remove('visible');
+    }
+    updateDebug();
+  }
+
+  // ── NOTES ──
+  async function loadNotes() {
+    setDebugStatus('loading...');
+    try {
+      const res = await fetch(`${API}/notes`);
+      const notes = await res.json();
+      notesCache = Array.isArray(notes) ? notes : [];
+      renderNotes(notesCache);
+      document.getElementById('dbg-cnt').textContent = notesCache.length;
+      setDebugStatus('ok');
+    } catch(e) {
+      renderNotes([]);
+      setDebugStatus('error: ' + e.message, true);
+    }
+  }
+
+  function renderNotes(notes) {
+    const list = document.getElementById('notes-list');
+    if (!notes.length) {
+      list.innerHTML = '<div class="empty-state">заметок пока нет — будьте первым</div>';
+      return;
+    }
+    list.innerHTML = notes.map((n, i) => `
+      <div class="note-card" style="animation-delay:${i * 0.04}s">
+        <div class="note-title">${esc(n.title)}</div>
+        <div class="note-body">${esc(n.body)}</div>
+        <div class="note-footer">
+          <span class="note-date">${formatDate(n.created_at)}</span>
+          ${currentUser ? `
+          <div class="note-actions">
+            <button class="icon-btn" onclick="editNote('${n.id}')">edit</button>
+            <button class="icon-btn del" onclick="deleteNote('${n.id}')">del</button>
+          </div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── CREATE / EDIT NOTE ──
+  function editNote(id) {
+    const note = notesCache.find(n => n.id === id);
+    if (!note) return;
+    editingNoteId = id;
+    document.getElementById('note-modal-title').textContent = '// редактировать';
+    document.getElementById('note-title').value = note.title;
+    document.getElementById('note-body').value = note.body;
+    openModal('note-modal');
+  }
+
+  async function saveNote() {
+    const title = document.getElementById('note-title').value.trim();
+    const body = document.getElementById('note-body').value.trim();
+    if (!title) return showError('note-error', 'заголовок не может быть пустым');
+
+    const method = editingNoteId ? 'PUT' : 'POST';
+    const url = editingNoteId ? `${API}/notes/${editingNoteId}` : `${API}/notes`;
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ title, body })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      closeModal('note-modal');
+      editingNoteId = null;
+      document.getElementById('note-title').value = '';
+      document.getElementById('note-body').value = '';
+      loadNotes();
+    } catch(e) { showError('note-error', e.message); }
+  }
+
+  async function deleteNote(id) {
+    if (!confirm('удалить заметку?')) return;
+    await fetch(`${API}/notes/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    loadNotes();
+  }
+
+  // ── AUTH ──
+  async function doLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    try {
+      const res = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      token = data.token;
+      const payload = parseJwt(token);
+      currentUser = { username: email.split('@')[0], id: payload.user_id };
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(currentUser));
+      closeModal('login-modal');
+      renderAuthArea();
+      loadNotes();
+    } catch(e) { showError('login-error', e.message); }
+  }
+
+  async function doRegister() {
+    const username = document.getElementById('reg-username').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    if (password.length < 8) return showError('reg-error', 'пароль минимум 8 символов');
+    try {
+      const res = await fetch(`${API}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      token = data.token;
+      currentUser = { username, id: parseJwt(token).user_id };
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(currentUser));
+      closeModal('register-modal');
+      renderAuthArea();
+      loadNotes();
+    } catch(e) { showError('reg-error', e.message); }
+  }
+
+  function logout() {
+    token = null; currentUser = null;
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    renderAuthArea();
+    loadNotes();
+  }
+
+  // ── MODAL HELPERS ──
+  function openModal(id) {
+    document.getElementById(id).classList.add('open');
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+    document.querySelectorAll('.error-msg').forEach(e => e.classList.remove('visible'));
+  }
+  // закрытие только по крестику
+
+  function showError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+
+  // ── DEBUG ──
+  function toggleDebug() {
+    document.getElementById('debug-panel').classList.toggle('open');
+  }
+
+  function updateDebug() {
+    if (token) {
+      const p = parseJwt(token);
+      const exp = p.exp ? new Date(p.exp * 1000).toLocaleString('ru') : '—';
+      document.getElementById('dbg-exp').textContent = exp;
+      document.getElementById('dbg-uid').textContent = p.user_id || '—';
+    } else {
+      document.getElementById('dbg-exp').textContent = '—';
+      document.getElementById('dbg-uid').textContent = '—';
+    }
+    document.getElementById('dbg-usr').textContent = currentUser?.username || '—';
+  }
+
+  function setDebugStatus(msg, isErr = false) {
+    const el = document.getElementById('dbg-status');
+    el.textContent = msg;
+    el.className = 'dv' + (isErr ? ' red' : '');
+  }
+
+  // ── UTILS ──
+  function parseJwt(t) {
+    try { return JSON.parse(atob(t.split('.')[1])); } catch { return {}; }
+  }
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function formatDate(s) {
+    if (!s) return '';
+    return new Date(s).toLocaleDateString('ru', { day:'2-digit', month:'short', year:'numeric' });
+  }
+</script>
+</body>
+</html>
